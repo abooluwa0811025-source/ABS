@@ -1,0 +1,300 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ABS Social</title>
+<style>
+:root{--blue:#0866ff;--bg:#f0f5fb;--white:#fff;--text:#172033}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,sans-serif;background:var(--bg);color:var(--text)}
+header{background:var(--blue);color:white;padding:15px;position:sticky;top:0;z-index:5}
+.top{max-width:720px;margin:auto;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.logo{font-size:25px;font-weight:bold}
+button{cursor:pointer;border:0;border-radius:9px;padding:10px 13px;font-weight:bold}
+.primary{background:var(--blue);color:white}
+.light{background:#e7efff;color:var(--blue)}
+header button{background:white;color:var(--blue)}
+main{max-width:650px;margin:18px auto;padding:0 12px 90px}
+.card{background:white;border-radius:13px;padding:15px;margin-bottom:14px;box-shadow:0 2px 8px #12254b0b}
+h2{margin:4px 0 12px;font-size:21px}
+input,textarea{width:100%;padding:12px;border:1px solid #dce3ee;border-radius:9px;margin:7px 0;font:inherit}
+textarea{resize:vertical;min-height:75px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.meta{font-size:12px;color:#718096}
+.author{font-weight:bold}
+.post-img{width:100%;max-height:420px;object-fit:contain;border-radius:10px;margin-top:10px;background:#eef2f8}
+.stats{display:flex;gap:12px;flex-wrap:wrap;font-size:13px;color:#65738a;margin-top:10px}
+nav{position:fixed;bottom:0;left:0;right:0;background:white;display:flex;justify-content:center;gap:5px;padding:9px;box-shadow:0 -2px 10px #0001;z-index:6}
+nav button{background:white;color:#53627a;flex:1;max-width:125px;padding:10px 3px;font-size:12px}
+nav button.active{background:#e7efff;color:var(--blue)}
+.hidden{display:none!important}
+.avatar{width:40px;height:40px;border-radius:50%;background:#dce9ff;color:var(--blue);display:inline-flex;align-items:center;justify-content:center;font-weight:bold;margin-right:9px}
+.row{display:flex;align-items:center}
+.muted{color:#718096;font-size:14px}
+#auth{max-width:420px;margin:55px auto;padding:20px}
+#auth .logo{color:var(--blue);margin-bottom:12px}
+.comment{padding:8px;background:#f5f7fb;border-radius:8px;margin-top:8px;font-size:14px}
+@media(min-width:700px){main{margin-top:25px}}
+</style>
+</head>
+<body>
+
+<header>
+ <div class="top">
+  <div class="logo">ABS</div>
+  <div>
+   <button onclick="showPage('home')">Home</button>
+   <button onclick="showPage('notifications')">🔔 <span id="bell">0</span></button>
+  </div>
+ </div>
+</header>
+
+<section id="auth" class="card">
+ <div class="logo">ABS Social</div>
+ <p class="muted">Connect with people and share your world.</p>
+ <div id="loginForm">
+  <h2>Welcome back</h2>
+  <input id="loginName" placeholder="Your display name">
+  <button class="primary" style="width:100%" onclick="login()">Enter demo</button>
+  <p>New here? <a href="#" onclick="toggleAuth(false)">Create account</a></p>
+ </div>
+ <div id="signupForm" class="hidden">
+  <h2>Create account</h2>
+  <input id="signupName" placeholder="Your name">
+  <input id="signupEmail" type="email" placeholder="Email address">
+  <input id="signupPassword" type="password" placeholder="Password (demo only)">
+  <button class="primary" style="width:100%" onclick="signup()">Sign up for demo</button>
+  <p>Already here? <a href="#" onclick="toggleAuth(true)">Log in</a></p>
+ </div>
+ <p class="muted">Demo mode: accounts are not securely registered online yet.</p>
+</section>
+
+<main id="app" class="hidden">
+ <section id="home">
+  <div class="card">
+   <h2>Create a post</h2>
+   <textarea id="postText" placeholder="What's on your mind?"></textarea>
+   <label class="muted">Add an image (optional)</label>
+   <input id="postImage" type="file" accept="image/*">
+   <button class="primary" onclick="createPost()">Publish post</button>
+  </div>
+  <div id="feed"></div>
+ </section>
+
+ <section id="profile" class="hidden">
+  <div class="card">
+   <div class="row"><div class="avatar" id="profileAvatar">A</div><h2 id="profileName">Your profile</h2></div>
+   <p class="muted">Welcome to your ABS profile.</p>
+   <div class="stats">
+    <span>Posts: <b id="postCount">0</b></span>
+    <span>Followers: <b id="followers">0</b></span>
+    <span>Following: <b id="following">0</b></span>
+   </div>
+   <button class="light" onclick="logout()">Log out</button>
+  </div>
+ </section>
+
+ <section id="notifications" class="hidden">
+  <div class="card"><h2>Notifications</h2><p id="noticeText">You're all caught up.</p></div>
+ </section>
+
+ <section id="chat" class="hidden">
+  <div class="card">
+   <h2>Private messages</h2>
+   <p class="muted">Private chat will be connected to the online backend in a later step.</p>
+  </div>
+ </section>
+</main>
+
+<nav id="nav" class="hidden">
+ <button class="active" onclick="showPage('home',this)">🏠 Home</button>
+ <button onclick="showPage('profile',this)">👤 Profile</button>
+ <button onclick="showPage('chat',this)">💬 Chat</button>
+ <button onclick="showPage('notifications',this)">🔔 Alerts</button>
+</nav>
+
+<script>
+const $ = id => document.getElementById(id);
+let user = "";
+let posts = [];
+let notifications = [];
+
+function toggleAuth(loginMode){
+ $("loginForm").classList.toggle("hidden",!loginMode);
+ $("signupForm").classList.toggle("hidden",loginMode);
+}
+
+function login(){
+ const name=$("loginName").value.trim();
+ if(!name) return alert("Enter your display name.");
+ user=name;
+ startApp();
+}
+
+function signup(){
+ const name=$("signupName").value.trim();
+ const email=$("signupEmail").value.trim();
+ const password=$("signupPassword").value;
+ if(!name || !email || password.length<6)
+  return alert("Enter your name, a valid email, and a password of at least 6 characters.");
+ user=name;
+ startApp();
+}
+
+function startApp(){
+ $("auth").classList.add("hidden");
+ $("app").classList.remove("hidden");
+ $("nav").classList.remove("hidden");
+ $("profileName").textContent=user;
+ $("profileAvatar").textContent=user[0].toUpperCase();
+ showPage("home");
+ renderPosts();
+ updateProfile();
+}
+
+function logout(){
+ user="";
+ $("app").classList.add("hidden");
+ $("nav").classList.add("hidden");
+ $("auth").classList.remove("hidden");
+}
+
+function showPage(page,button){
+ ["home","profile","chat","notifications"].forEach(id=>{
+  $(id).classList.toggle("hidden",id!==page);
+ });
+ document.querySelectorAll("nav button").forEach(b=>b.classList.remove("active"));
+ if(button) button.classList.add("active");
+ if(page==="notifications"){
+  $("noticeText").textContent=notifications.length
+   ?notifications.join(" · "):"You're all caught up.";
+  $("bell").textContent=notifications.length;
+ }
+}
+
+async function createPost(){
+ const text=$("postText").value.trim();
+ const file=$("postImage").files[0];
+ if(!text&&!file) return alert("Write something or choose an image.");
+ let image="";
+ if(file){
+  if(file.size>2*1024*1024)
+   return alert("Please choose an image smaller than 2 MB for this demo.");
+  image=await new Promise((resolve,reject)=>{
+   const reader=new FileReader();
+   reader.onload=()=>resolve(reader.result);
+   reader.onerror=reject;
+   reader.readAsDataURL(file);
+  });
+ }
+ posts.unshift({
+  id:Date.now()+Math.random(),
+  author:user,text,image,likes:[],comments:[],views:0
+ });
+ $("postText").value="";
+ $("postImage").value="";
+ renderPosts();
+ updateProfile();
+}
+
+function renderPosts(){
+ const feed=$("feed");
+ feed.innerHTML="";
+ if(!posts.length){
+  feed.innerHTML='<div class="card muted">No posts yet. Be the first to share something!</div>';
+  return;
+ }
+ posts.forEach(post=>{
+  const card=document.createElement("article");
+  card.className="card";
+  const top=document.createElement("div");
+  top.className="row";
+  const avatar=document.createElement("div");
+  avatar.className="avatar";
+  avatar.textContent=post.author[0].toUpperCase();
+  const details=document.createElement("div");
+  const author=document.createElement("div");
+  author.className="author";
+  author.textContent=post.author;
+  const time=document.createElement("div");
+  time.className="meta";
+  time.textContent="ABS member · "+new Date(post.id).toLocaleString();
+  details.append(author,time);
+  top.append(avatar,details);
+  card.append(top);
+
+  if(post.text){
+   const p=document.createElement("p");
+   p.style.whiteSpace="pre-wrap";
+   p.textContent=post.text;
+   card.append(p);
+  }
+  if(post.image){
+   const img=document.createElement("img");
+   img.className="post-img";
+   img.src=post.image;
+   img.alt="Post image";
+   card.append(img);
+  }
+
+  const stats=document.createElement("div");
+  stats.className="stats";
+  stats.textContent=`${post.likes.length} likes · ${post.comments.length} comments · ${post.views} views`;
+  card.append(stats);
+
+  const actions=document.createElement("div");
+  actions.className="actions";
+  const like=document.createElement("button");
+  like.className="light";
+  like.textContent=post.likes.includes(user)?"♥ Liked":"♡ Like";
+  like.onclick=()=>{
+   if(post.likes.includes(user))
+    post.likes=post.likes.filter(n=>n!==user);
+   else{
+    post.likes.push(user);
+    if(post.author!==user) notifications.unshift(user+" liked "+post.author+"'s post");
+   }
+   renderPosts();
+  };
+  const comment=document.createElement("button");
+  comment.className="light";
+  comment.textContent="Comment";
+  comment.onclick=()=>{
+   const text=prompt("Write your comment:");
+   if(text&&text.trim()){
+    post.comments.push({author:user,text:text.trim()});
+    if(post.author!==user) notifications.unshift(user+" commented on "+post.author+"'s post");
+    renderPosts();
+   }
+  };
+  const view=document.createElement("button");
+  view.className="light";
+  view.textContent="View post";
+  view.onclick=()=>{
+   post.views++;
+   renderPosts();
+  };
+  actions.append(like,comment,view);
+  card.append(actions);
+
+  post.comments.forEach(c=>{
+   const item=document.createElement("div");
+   item.className="comment";
+   const strong=document.createElement("b");
+   strong.textContent=c.author+": ";
+   item.append(strong,document.createTextNode(c.text));
+   card.append(item);
+  });
+  feed.append(card);
+ });
+ $("bell").textContent=notifications.length;
+}
+
+function updateProfile(){
+ $("postCount").textContent=posts.filter(p=>p.author===user).length;
+}
+</script>
+</body>
+</html>
